@@ -103,6 +103,11 @@ class SequenceBuilder {
     return AppendPrimitive(&bools_, data, PythonType::BOOL);
   }
 
+  // Appending a python 2 int64_t to the sequence
+  Status AppendPy2Int64(const int64_t data) {
+    return AppendPrimitive(&py2_ints_, data, PythonType::PY2INT);
+  }
+
   // Appending an int64_t to the sequence
   Status AppendInt64(const int64_t data) {
     return AppendPrimitive(&ints_, data, PythonType::INT);
@@ -257,6 +262,7 @@ class SequenceBuilder {
 
   std::shared_ptr<BooleanBuilder> bools_;
   std::shared_ptr<Int64Builder> ints_;
+  std::shared_ptr<Int64Builder> py2_ints_;
   std::shared_ptr<BinaryBuilder> bytes_;
   std::shared_ptr<StringBuilder> strings_;
   std::shared_ptr<HalfFloatBuilder> half_floats_;
@@ -463,6 +469,10 @@ Status Append(PyObject* context, PyObject* elem, SequenceBuilder* builder,
       RETURN_NOT_OK(
           builder->AppendDict(context, serialized_object, recursion_depth, blobs_out));
     }
+#if PY_MAJOR_VERSION < 3
+  } else if (PyInt_Check(elem)) {
+    RETURN_NOT_OK(builder->AppendPy2Int64(static_cast<int64_t>(PyInt_AS_LONG(elem))));
+#endif
   } else if (PyBytes_Check(elem)) {
     auto data = reinterpret_cast<uint8_t*>(PyBytes_AS_STRING(elem));
     int32_t size = -1;

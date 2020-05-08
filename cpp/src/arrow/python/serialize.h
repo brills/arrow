@@ -117,7 +117,7 @@ struct PythonType {
   enum type {
     BOOL,
     INT,
-    PY2INT,  // Kept for compatibility
+    PY2INT,
     BYTES,
     STRING,
     HALF_FLOAT,
