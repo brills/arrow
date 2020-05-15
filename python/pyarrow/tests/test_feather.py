@@ -321,14 +321,14 @@ def test_delete_partial_file_on_error(version):
     if sys.platform == 'win32':
         pytest.skip('Windows hangs on to file handle for some reason')
 
-    class CustomClass:
+    class CustomClass(object):
         pass
 
     # strings will fail
     df = pd.DataFrame(
         {
             'numbers': range(5),
-            'strings': [b'foo', None, 'bar', CustomClass(), np.nan]},
+            'strings': [b'foo', None, u'bar', CustomClass(), np.nan]},
         columns=['numbers', 'strings'])
 
     path = random_path()
@@ -375,7 +375,6 @@ def test_all_none(version):
     df = pd.DataFrame({'all_none': [None] * 10})
     _check_pandas_roundtrip(df, version=version)
 
-
 @pytest.mark.pandas
 def test_all_null_category(version):
     # ARROW-1188
@@ -383,14 +382,12 @@ def test_all_null_category(version):
     df = df.assign(B=df.B.astype("category"))
     _check_pandas_roundtrip(df, version=version)
 
-
 @pytest.mark.pandas
 def test_multithreaded_read(version):
     data = {'c{}'.format(i): [''] * 10
             for i in range(100)}
     df = pd.DataFrame(data)
     _check_pandas_roundtrip(df, use_threads=True, version=version)
-
 
 @pytest.mark.pandas
 def test_nan_as_null(version):
@@ -403,7 +400,7 @@ def test_nan_as_null(version):
 @pytest.mark.pandas
 def test_category(version):
     repeats = 1000
-    values = ['foo', None, 'bar', 'qux', np.nan]
+    values = ['foo', None, u'bar', 'qux', np.nan]
     df = pd.DataFrame({'strings': values * repeats})
     df['strings'] = df['strings'].astype('category')
 

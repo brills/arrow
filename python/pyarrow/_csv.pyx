@@ -20,6 +20,7 @@
 # cython: embedsignature = True
 # cython: language_level = 3
 
+from __future__ import absolute_import
 
 from pyarrow.includes.common cimport *
 from pyarrow.includes.libarrow cimport *

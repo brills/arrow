@@ -15,8 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
 
 import os
+
+import six
 
 from pyarrow.pandas_compat import _pandas_api  # noqa
 from pyarrow.lib import FeatherError  # noqa
@@ -29,7 +32,7 @@ def _check_pandas_version():
         raise ImportError("feather requires pandas >= 0.17.0")
 
 
-class FeatherDataset:
+class FeatherDataset(object):
     """
     Encapsulates details of reading a list of Feather files.
 
@@ -176,7 +179,7 @@ def write_feather(df, dest, compression=None, compression_level=None,
                           compression_level=compression_level,
                           chunksize=chunksize, version=version)
     except Exception:
-        if isinstance(dest, str):
+        if isinstance(dest, six.string_types):
             try:
                 os.remove(dest)
             except os.error:

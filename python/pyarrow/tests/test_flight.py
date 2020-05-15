@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -123,7 +124,7 @@ class ConstantFlightServer(FlightServerBase):
     CRITERIA = b"the expected criteria"
 
     def __init__(self, location=None, **kwargs):
-        super().__init__(location, **kwargs)
+        super(ConstantFlightServer, self).__init__(location, **kwargs)
         # Ticket -> Table
         self.table_factories = {
             b'ints': simple_ints_table,
@@ -187,7 +188,7 @@ class EchoFlightServer(FlightServerBase):
     """A Flight server that returns the last data uploaded."""
 
     def __init__(self, location=None, expected_schema=None, **kwargs):
-        super().__init__(location, **kwargs)
+        super(EchoFlightServer, self).__init__(location, **kwargs)
         self.last_message = None
         self.expected_schema = expected_schema
 
@@ -252,7 +253,8 @@ class ListActionsFlightServer(FlightServerBase):
         ]
 
     def list_actions(self, context):
-        yield from self.expected_actions()
+        for action in self.expected_actions():
+            yield action
 
 
 class ListActionsErrorFlightServer(FlightServerBase):
@@ -267,7 +269,7 @@ class CheckTicketFlightServer(FlightServerBase):
     """A Flight server that compares the given ticket to an expected value."""
 
     def __init__(self, expected_ticket, location=None, **kwargs):
-        super().__init__(location, **kwargs)
+        super(CheckTicketFlightServer, self).__init__(location, **kwargs)
         self.expected_ticket = expected_ticket
 
     def do_get(self, context, ticket):
@@ -350,7 +352,7 @@ class HttpBasicServerAuthHandler(ServerAuthHandler):
     """An example implementation of HTTP basic authentication."""
 
     def __init__(self, creds):
-        super().__init__()
+        super(HttpBasicServerAuthHandler, self).__init__()
         self.creds = creds
 
     def authenticate(self, outgoing, incoming):
@@ -374,7 +376,7 @@ class HttpBasicClientAuthHandler(ClientAuthHandler):
     """An example implementation of HTTP basic authentication."""
 
     def __init__(self, username, password):
-        super().__init__()
+        super(HttpBasicClientAuthHandler, self).__init__()
         self.basic_auth = flight.BasicAuth(username, password)
         self.token = None
 
@@ -391,7 +393,7 @@ class TokenServerAuthHandler(ServerAuthHandler):
     """An example implementation of authentication via handshake."""
 
     def __init__(self, creds):
-        super().__init__()
+        super(TokenServerAuthHandler, self).__init__()
         self.creds = creds
 
     def authenticate(self, outgoing, incoming):
@@ -414,7 +416,7 @@ class TokenClientAuthHandler(ClientAuthHandler):
     """An example implementation of authentication via handshake."""
 
     def __init__(self, username, password):
-        super().__init__()
+        super(TokenClientAuthHandler, self).__init__()
         self.username = username
         self.password = password
         self.token = b''
@@ -449,7 +451,7 @@ class HeaderFlightServer(FlightServerBase):
         middleware = context.get_middleware("test")
         if middleware:
             return iter([flight.Result(middleware.special_value.encode())])
-        return iter([flight.Result(b"")])
+        return iter([flight.Result("".encode())])
 
 
 class SelectiveAuthServerMiddlewareFactory(ServerMiddlewareFactory):

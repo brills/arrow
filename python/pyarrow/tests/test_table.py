@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -1076,9 +1077,9 @@ def test_invalid_table_construct():
 
 
 @pytest.mark.parametrize('data, klass', [
-    ((['', 'foo', 'bar'], [4.5, 5, None]), list),
-    ((['', 'foo', 'bar'], [4.5, 5, None]), pa.array),
-    (([[''], ['foo', 'bar']], [[4.5], [5., None]]), pa.chunked_array),
+    (([u'', u'foo', u'bar'], [4.5, 5, None]), list),
+    (([u'', u'foo', u'bar'], [4.5, 5, None]), pa.array),
+    (([[u''], [u'foo', u'bar']], [[4.5], [5., None]]), pa.chunked_array),
 ])
 def test_from_arrays_schema(data, klass):
     data = [klass(data[0]), klass(data[1])]
@@ -1125,7 +1126,7 @@ def test_table_from_pydict():
     schema = pa.schema([('strs', pa.utf8()), ('floats', pa.float64())])
 
     # With lists as values
-    data = OrderedDict([('strs', ['', 'foo', 'bar']),
+    data = OrderedDict([('strs', [u'', u'foo', u'bar']),
                         ('floats', [4.5, 5, None])])
     table = pa.Table.from_pydict(data)
     assert table.num_columns == 2
@@ -1173,8 +1174,8 @@ def test_table_from_pydict():
 
 
 @pytest.mark.parametrize('data, klass', [
-    ((['', 'foo', 'bar'], [4.5, 5, None]), pa.array),
-    (([[''], ['foo', 'bar']], [[4.5], [5., None]]), pa.chunked_array),
+    (([u'', u'foo', u'bar'], [4.5, 5, None]), pa.array),
+    (([[u''], [u'foo', u'bar']], [[4.5], [5., None]]), pa.chunked_array),
 ])
 def test_table_from_pydict_arrow_arrays(data, klass):
     data = OrderedDict([('strs', klass(data[0])), ('floats', klass(data[1]))])
@@ -1207,9 +1208,9 @@ def test_table_from_pydict_arrow_arrays(data, klass):
 
 
 @pytest.mark.parametrize('data, klass', [
-    ((['', 'foo', 'bar'], [4.5, 5, None]), list),
-    ((['', 'foo', 'bar'], [4.5, 5, None]), pa.array),
-    (([[''], ['foo', 'bar']], [[4.5], [5., None]]), pa.chunked_array),
+    (([u'', u'foo', u'bar'], [4.5, 5, None]), list),
+    (([u'', u'foo', u'bar'], [4.5, 5, None]), pa.array),
+    (([[u''], [u'foo', u'bar']], [[4.5], [5., None]]), pa.chunked_array),
 ])
 def test_table_from_pydict_schema(data, klass):
     # passed schema is source of truth for the columns
@@ -1235,7 +1236,7 @@ def test_table_from_pandas_schema():
     # passed schema is source of truth for the columns
     import pandas as pd
 
-    df = pd.DataFrame(OrderedDict([('strs', ['', 'foo', 'bar']),
+    df = pd.DataFrame(OrderedDict([('strs', [u'', u'foo', u'bar']),
                                    ('floats', [4.5, 5, None])]))
 
     # with different but compatible schema

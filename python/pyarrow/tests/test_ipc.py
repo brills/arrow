@@ -38,7 +38,7 @@ except ImportError:
 pytestmark = pytest.mark.pandas
 
 
-class IpcFixture:
+class IpcFixture(object):
 
     def __init__(self, sink_factory=lambda: io.BytesIO()):
         self._sink_factory = sink_factory

@@ -17,9 +17,16 @@
 
 """Dataset is currently unstable. APIs subject to change without notice."""
 
+from __future__ import absolute_import
+
+import sys
+
 import pyarrow as pa
 from pyarrow.fs import _normalize_path, _MockFileSystem
 from pyarrow.util import _stringify_path, _is_path_like
+
+if sys.version_info < (3,):
+    raise ImportError("Python Dataset bindings require Python 3")
 
 from pyarrow._dataset import (  # noqa
     AndExpression,
@@ -166,7 +173,7 @@ def partitioning(schema=None, field_names=None, flavor=None):
                 return DirectoryPartitioning.discover(field_names)
             else:
                 raise ValueError(
-                    "Expected list of field names, got {}".format(
+                    "Expected list of field names, got {0}".format(
                         type(field_names)))
         else:
             raise ValueError(
@@ -180,7 +187,7 @@ def partitioning(schema=None, field_names=None, flavor=None):
                 return HivePartitioning(schema)
             else:
                 raise ValueError(
-                    "Expected Schema for 'schema', got {}".format(
+                    "Expected Schema for 'schema', got {0}".format(
                         type(schema)))
         else:
             return HivePartitioning.discover()
@@ -216,7 +223,7 @@ def _ensure_format(obj):
     elif obj in {"ipc", "arrow", "feather"}:
         return IpcFileFormat()
     else:
-        raise ValueError("format '{}' is not supported".format(obj))
+        raise ValueError("format '{0}' is not supported".format(obj))
 
 
 def _ensure_filesystem(fs_or_uri):

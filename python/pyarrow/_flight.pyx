@@ -18,6 +18,8 @@
 # cython: language_level = 3
 # cython: embedsignature = True
 
+from __future__ import absolute_import
+
 import collections
 import contextlib
 import enum
@@ -26,6 +28,8 @@ import socket
 import time
 import threading
 import warnings
+
+import six
 
 from cython.operator cimport dereference as deref
 from cython.operator cimport postincrement
@@ -556,7 +560,7 @@ cdef class Location:
     @staticmethod
     cdef CLocation unwrap(object location) except *:
         cdef CLocation c_location
-        if isinstance(location, str):
+        if isinstance(location, six.text_type):
             check_flight_status(
                 CLocation.Parse(tobytes(location), &c_location))
             return c_location
@@ -928,7 +932,7 @@ cdef class FlightClient:
 
     def __init__(self, location, tls_root_certs=None, override_hostname=None,
                  middleware=None):
-        if isinstance(location, (bytes, str)):
+        if isinstance(location, six.string_types):
             location = Location(location)
         elif isinstance(location, tuple):
             host, port = location
@@ -2108,7 +2112,7 @@ cdef class _ServerMiddlewareWrapper(ServerMiddleware):
             # Manually merge with existing headers (since headers are
             # multi-valued)
             for key, values in more_headers.items():
-                if isinstance(values, (bytes, str)):
+                if isinstance(values, (six.text_type, six.binary_type)):
                     values = (values,)
                 headers[key].extend(values)
         return headers
@@ -2146,7 +2150,7 @@ cdef class FlightServerBase:
 
     def __init__(self, location=None, auth_handler=None,
                  tls_certificates=None, middleware=None):
-        if isinstance(location, (bytes, str)):
+        if isinstance(location, six.string_types):
             location = Location(location)
         elif isinstance(location, (tuple, type(None))):
             if location is None:

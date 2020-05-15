@@ -17,17 +17,7 @@
 
 # flake8: noqa
 
-"""
-PyArrow is the python implementation of Apache Arrow.
-
-Apache Arrow is a cross-language development platform for in-memory data.
-It specifies a standardized language-independent columnar memory format for
-flat and hierarchical data, organized for efficient analytic operations on
-modern hardware. It also provides computational libraries and zero-copy
-streaming messaging and interprocess communication.
-
-For more information see the official page at https://arrow.apache.org
-"""
+from __future__ import absolute_import
 
 import os as _os
 import sys as _sys
@@ -300,7 +290,7 @@ def get_library_dirs():
                 if not library_dir.startswith("-L"):
                     raise ValueError(
                         "pkg-config --libs-only-L returned unexpected "
-                        "value {!r}".format(library_dir))
+                        "value {0!r}".format(library_dir))
                 append_library_dir(library_dir[2:])
 
     if _sys.platform == 'win32':

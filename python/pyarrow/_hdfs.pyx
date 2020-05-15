@@ -17,6 +17,8 @@
 
 # cython: language_level = 3
 
+import six
+
 from pyarrow.lib cimport check_status
 from pyarrow.includes.common cimport *
 from pyarrow.includes.libarrow cimport *

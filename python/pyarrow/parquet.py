@@ -15,17 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
 
 from collections import defaultdict
 from concurrent import futures
 from functools import partial
 
+from six.moves.urllib.parse import urlparse
 import json
 import numpy as np
 import os
 import re
+import six
 import operator
-import urllib.parse
 
 import pyarrow as pa
 import pyarrow.lib as lib
@@ -45,7 +47,7 @@ _URI_STRIP_SCHEMES = ('hdfs',)
 
 def _parse_uri(path):
     path = _stringify_path(path)
-    parsed_uri = urllib.parse.urlparse(path)
+    parsed_uri = urlparse(path)
     if parsed_uri.scheme in _URI_STRIP_SCHEMES:
         return parsed_uri.path
     else:
@@ -64,16 +66,16 @@ def _get_filesystem_and_path(passed_filesystem, path):
 
 
 def _check_contains_null(val):
-    if isinstance(val, bytes):
+    if isinstance(val, six.binary_type):
         for byte in val:
-            if isinstance(byte, bytes):
+            if isinstance(byte, six.binary_type):
                 compare_to = chr(0)
             else:
                 compare_to = 0
             if byte == compare_to:
                 return True
-    elif isinstance(val, str):
-        return '\x00' in val
+    elif isinstance(val, six.text_type):
+        return u'\x00' in val
     return False
 
 
@@ -84,7 +86,7 @@ def _check_filters(filters, check_null_strings=True):
     if filters is not None:
         if len(filters) == 0 or any(len(f) == 0 for f in filters):
             raise ValueError("Malformed filters")
-        if isinstance(filters[0][0], str):
+        if isinstance(filters[0][0], six.string_types):
             # We have encountered the situation where we have one nesting level
             # too few:
             #   We have [(,,), ..] instead of [[(,,), ..]]
@@ -181,7 +183,7 @@ def _filters_to_expression(filters):
 # Reading a single Parquet file
 
 
-class ParquetFile:
+class ParquetFile(object):
     """
     Reader interface for a single Parquet file.
 
@@ -484,7 +486,7 @@ writer_engine_version: str, default "V2"
 """
 
 
-class ParquetWriter:
+class ParquetWriter(object):
 
     __doc__ = """
 Class for incrementally building a Parquet file for Arrow tables.
@@ -493,7 +495,7 @@ Parameters
 ----------
 where : path or file-like object
 schema : arrow Schema
-{}
+{0}
 **options : dict
     If options contains a key `metadata_collector` then the
     corresponding value is assumed to be a list (or any object with
@@ -571,8 +573,8 @@ schema : arrow Schema
 
         if not table.schema.equals(self.schema, check_metadata=False):
             msg = ('Table schema does not match schema used to create file: '
-                   '\ntable:\n{!s} vs. \nfile:\n{!s}'
-                   .format(table.schema, self.schema))
+                   '\ntable:\n{0!s} vs. \nfile:\n{1!s}'.format(table.schema,
+                                                               self.schema))
             raise ValueError(msg)
 
         self.writer.write_table(table, row_group_size=row_group_size)
@@ -597,7 +599,7 @@ def _get_pandas_index_columns(keyvalues):
 # file, possibly part of a partitioned dataset
 
 
-class ParquetDatasetPiece:
+class ParquetDatasetPiece(object):
     """
     A single chunk of a potentially larger Parquet dataset to read.
 
@@ -630,8 +632,11 @@ class ParquetDatasetPiece:
                 self.row_group == other.row_group and
                 self.partition_keys == other.partition_keys)
 
+    def __ne__(self, other):
+        return not (self == other)
+
     def __repr__(self):
-        return ('{}({!r}, row_group={!r}, partition_keys={!r})'
+        return ('{0}({1!r}, row_group={2!r}, partition_keys={3!r})'
                 .format(type(self).__name__, self.path,
                         self.row_group,
                         self.partition_keys))
@@ -640,14 +645,14 @@ class ParquetDatasetPiece:
         result = ''
 
         if len(self.partition_keys) > 0:
-            partition_str = ', '.join('{}={}'.format(name, index)
+            partition_str = ', '.join('{0}={1}'.format(name, index)
                                       for name, index in self.partition_keys)
-            result += 'partition[{}] '.format(partition_str)
+            result += 'partition[{0}] '.format(partition_str)
 
         result += self.path
 
         if self.row_group is not None:
-            result += ' | row_group={}'.format(self.row_group)
+            result += ' | row_group={0}'.format(self.row_group)
 
         return result
 
@@ -735,7 +740,7 @@ class ParquetDatasetPiece:
         return table
 
 
-class PartitionSet:
+class PartitionSet(object):
     """
     A data structure for cataloguing the observed Parquet partitions at a
     particular level. So if we have
@@ -794,7 +799,7 @@ class PartitionSet:
         return list(self.keys) == sorted(self.keys)
 
 
-class ParquetPartitions:
+class ParquetPartitions(object):
 
     def __init__(self):
         self.levels = []
@@ -819,6 +824,10 @@ class ParquetPartitions:
         except TypeError:
             return NotImplemented
 
+    def __ne__(self, other):
+        # required for python 2, cython implements it by default
+        return not (self == other)
+
     def get_index(self, level, name, key):
         """
         Record a partition value at a particular level, returning the distinct
@@ -842,7 +851,7 @@ class ParquetPartitions:
         """
         if level == len(self.levels):
             if name in self.partition_names:
-                raise ValueError('{} was the name of the partition in '
+                raise ValueError('{0} was the name of the partition in '
                                  'another level'.format(name))
 
             part_set = PartitionSet(name)
@@ -865,13 +874,14 @@ class ParquetPartitions:
             if op not in {'in', 'not in'}:
                 raise ValueError("Op '%s' not supported with set value",
                                  op)
-            if len({type(item) for item in f_value}) != 1:
+            if len(set([type(item) for item in f_value])) != 1:
                 raise ValueError("All elements of set '%s' must be of"
                                  " same type", f_value)
             f_type = type(next(iter(f_value)))
 
-        p_value = f_type(self.levels[level]
-                         .dictionary[p_value_index].as_py())
+        p_value = f_type((self.levels[level]
+                          .dictionary[p_value_index]
+                          .as_py()))
 
         if op == "=" or op == "==":
             return p_value == f_value
@@ -894,7 +904,7 @@ class ParquetPartitions:
                              filter[1])
 
 
-class ParquetManifest:
+class ParquetManifest(object):
 
     def __init__(self, dirpath, open_file_func=None, filesystem=None,
                  pathsep='/', partition_scheme='hive', metadata_nthreads=1):
@@ -952,7 +962,7 @@ class ParquetManifest:
 
         if len(filtered_files) > 0 and len(filtered_directories) > 0:
             raise ValueError('Found files in an intermediate '
-                             'directory: {}'.format(base_path))
+                             'directory: {0}'.format(base_path))
         elif len(filtered_directories) > 0:
             self._visit_directories(level, filtered_directories, part_keys)
         else:
@@ -990,7 +1000,7 @@ class ParquetManifest:
         if self.partition_scheme == 'hive':
             return _parse_hive_partition(dirname)
         else:
-            raise NotImplementedError('partition schema: {}'
+            raise NotImplementedError('partition schema: {0}'
                                       .format(self.partition_scheme))
 
     def _push_pieces(self, files, part_keys):
@@ -1004,7 +1014,7 @@ class ParquetManifest:
 def _parse_hive_partition(value):
     if '=' not in value:
         raise ValueError('Directory name did not appear to be a '
-                         'partition: {}'.format(value))
+                         'partition: {0}'.format(value))
     return value.split('=', 1)
 
 
@@ -1068,7 +1078,7 @@ use_legacy_dataset : bool, default True
     different partitioning schemes, etc."""
 
 
-class ParquetDataset:
+class ParquetDataset(object):
 
     __doc__ = """
 Encapsulates details of reading a complete Parquet dataset possibly
@@ -1209,6 +1219,10 @@ metadata_nthreads: int, default 1
         except TypeError:
             return NotImplemented
 
+    def __ne__(self, other):
+        # required for python 2, cython implements it by default
+        return not (self == other)
+
     def validate_schemas(self):
         if self.metadata is None and self.schema is None:
             if self.common_metadata is not None:
@@ -1232,8 +1246,8 @@ metadata_nthreads: int, default 1
             file_metadata = piece.get_metadata()
             file_schema = file_metadata.schema.to_arrow_schema()
             if not dataset_schema.equals(file_schema, check_metadata=False):
-                raise ValueError('Schema in {!s} was different. \n'
-                                 '{!s}\n\nvs\n\n{!s}'
+                raise ValueError('Schema in {0!s} was different. \n'
+                                 '{1!s}\n\nvs\n\n{2!s}'
                                  .format(piece, file_schema,
                                          dataset_schema))
 
@@ -1350,7 +1364,7 @@ def _make_manifest(path_or_paths, fs, pathsep='/', metadata_nthreads=1,
         pieces = []
         for path in path_or_paths:
             if not fs.isfile(path):
-                raise OSError('Passed non-file path: {}'
+                raise IOError('Passed non-file path: {0}'
                               .format(path))
             piece = ParquetDatasetPiece(path, open_file_func=open_file_func)
             pieces.append(piece)
@@ -1622,7 +1636,7 @@ table : pyarrow.Table
 where: string or pyarrow.NativeFile
 row_group_size: int
     The number of rows per rowgroup
-{}
+{0}
 """.format(_parquet_writer_arg_docs)
 
 

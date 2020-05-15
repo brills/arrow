@@ -50,7 +50,7 @@ def hdfs_test_client():
 
 
 @pytest.mark.hdfs
-class HdfsTestCases:
+class HdfsTestCases(object):
 
     def _make_test_file(self, hdfs, test_name, test_path, test_data):
         base_path = pjoin(self.tmp_path, test_name)
@@ -282,7 +282,7 @@ class HdfsTestCases:
             # Hack so that we don't have a dtype cast in v1 files
             df['uint32'] = df['uint32'].astype(np.int64)
 
-            path = pjoin(tmpdir, '{}.parquet'.format(i))
+            path = pjoin(tmpdir, '{0}.parquet'.format(i))
 
             table = pa.Table.from_pandas(df, preserve_index=False)
             with self.hdfs.open(path, 'wb') as f:

@@ -19,6 +19,8 @@
 FileSystem abstraction to interact with various local and remote filesystems.
 """
 
+from __future__ import absolute_import
+
 from pyarrow._fs import (  # noqa
     FileSelector,
     FileType,
