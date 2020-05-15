@@ -17,6 +17,8 @@
 
 from cpython.ref cimport PyObject
 
+import six
+
 from pyarrow.compat import frombytes, pickle
 
 
@@ -28,7 +30,7 @@ def is_named_tuple(cls):
     f = getattr(cls, "_fields", None)
     if not isinstance(f, tuple):
         return False
-    return all(isinstance(n, str) for n in f)
+    return all(isinstance(n, six.string_types) for n in f)
 
 
 class SerializationCallbackError(ArrowSerializationError):
@@ -117,7 +119,7 @@ cdef class SerializationContext:
             This argument is optional, but can be provided to
             deserialize objects of the class in a particular way.
         """
-        if not isinstance(type_id, str):
+        if not isinstance(type_id, six.string_types):
             raise TypeError("The type_id argument must be a string. The value "
                             "passed in has type {}.".format(type(type_id)))
 

@@ -17,8 +17,15 @@
 
 """Dataset is currently unstable. APIs subject to change without notice."""
 
+from __future__ import absolute_import
+
+import sys
+
 import pyarrow as pa
 from pyarrow.util import _stringify_path, _is_path_like
+
+if sys.version_info < (3,):
+    raise ImportError("Python Dataset bindings require Python 3")
 
 from pyarrow._dataset import (  # noqa
     AndExpression,
@@ -127,7 +134,7 @@ def partitioning(schema=None, field_names=None, flavor=None):
                 return DirectoryPartitioning.discover(field_names)
             else:
                 raise ValueError(
-                    "Expected list of field names, got {}".format(
+                    "Expected list of field names, got {0}".format(
                         type(field_names)))
         else:
             raise ValueError(
@@ -141,7 +148,7 @@ def partitioning(schema=None, field_names=None, flavor=None):
                 return HivePartitioning(schema)
             else:
                 raise ValueError(
-                    "Expected Schema for 'schema', got {}".format(
+                    "Expected Schema for 'schema', got {0}".format(
                         type(schema)))
         else:
             return HivePartitioning.discover()
@@ -200,7 +207,7 @@ def _ensure_partitioning(scheme):
         pass
     else:
         ValueError(
-            "Expected Partitioning or PartitioningFactory, got {}".format(
+            "Expected Partitioning or PartitioningFactory, got {0}".format(
                 type(scheme)))
     return scheme
 
@@ -211,7 +218,7 @@ def _ensure_format(obj):
     elif obj == "parquet":
         return ParquetFileFormat()
     else:
-        raise ValueError("format '{}' is not supported".format(obj))
+        raise ValueError("format '{0}' is not supported".format(obj))
 
 
 def source(path_or_paths, filesystem=None, partitioning=None,
@@ -273,7 +280,7 @@ def _ensure_source(src, **kwargs):
         )
     else:
         raise TypeError(
-            "Expected a path-like or Source, got {}".format(type(src))
+            "Expected a path-like or Source, got {0}".format(type(src))
         )
 
 

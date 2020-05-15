@@ -15,8 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
 
 import os
+
+import six
 
 from pyarrow.pandas_compat import _pandas_api  # noqa
 from pyarrow.lib import FeatherError  # noqa
@@ -60,17 +63,17 @@ def check_chunked_overflow(name, col):
         return
 
     if col.type in (ext.binary(), ext.string()):
-        raise ValueError("Column '{}' exceeds 2GB maximum capacity of "
+        raise ValueError("Column '{0}' exceeds 2GB maximum capacity of "
                          "a Feather binary column. This restriction may be "
                          "lifted in the future".format(name))
     else:
         # TODO(wesm): Not sure when else this might be reached
-        raise ValueError("Column '{}' of type {} was chunked on conversion "
+        raise ValueError("Column '{0}' of type {1} was chunked on conversion "
                          "to Arrow and cannot be currently written to "
                          "Feather format".format(name, str(col.type)))
 
 
-class FeatherWriter:
+class FeatherWriter(object):
 
     def __init__(self, dest):
         _check_pandas_version()
@@ -97,7 +100,7 @@ class FeatherWriter:
         self.writer.close()
 
 
-class FeatherDataset:
+class FeatherDataset(object):
     """
     Encapsulates details of reading a list of Feather files.
 
@@ -140,8 +143,8 @@ class FeatherDataset:
 
     def validate_schemas(self, piece, table):
         if not self.schema.equals(table.schema):
-            raise ValueError('Schema in {!s} was different. \n'
-                             '{!s}\n\nvs\n\n{!s}'
+            raise ValueError('Schema in {0!s} was different. \n'
+                             '{1!s}\n\nvs\n\n{2!s}'
                              .format(piece, self.schema,
                                      table.schema))
 
@@ -183,7 +186,7 @@ def write_feather(df, dest):
         import gc
         writer = None
         gc.collect()
-        if isinstance(dest, str):
+        if isinstance(dest, six.string_types):
             try:
                 os.remove(dest)
             except os.error:

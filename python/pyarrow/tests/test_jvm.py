@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -20,6 +21,7 @@ import os
 import pyarrow as pa
 import pyarrow.jvm as pa_jvm
 import pytest
+import six
 import sys
 import xml.etree.ElementTree as ET
 
@@ -74,7 +76,7 @@ def _jvm_schema(jvm_spec, metadata=None):
     fields.add(field)
     if metadata:
         dct = jpype.JClass('java.util.HashMap')()
-        for k, v in metadata.items():
+        for k, v in six.iteritems(metadata):
             dct.put(k, v)
         return schema_cls(fields, dct)
     else:
@@ -370,7 +372,7 @@ def _string_to_varchar_holder(ra, string):
 @pytest.mark.xfail(reason="from_buffers is only supported for "
                           "primitive arrays yet")
 def test_jvm_string_array(root_allocator):
-    data = ["string", None, "töst"]
+    data = [u"string", None, u"töst"]
     cls = "org.apache.arrow.vector.VarCharVector"
     jvm_vector = jpype.JClass(cls)("vector", root_allocator)
     jvm_vector.allocateNew()

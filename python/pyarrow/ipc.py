@@ -17,6 +17,7 @@
 
 # Arrow file and stream reader/writer classes, and other messaging tools
 
+from __future__ import absolute_import
 
 import pyarrow as pa
 
@@ -27,7 +28,7 @@ from pyarrow.lib import (Message, MessageReader,  # noqa
 import pyarrow.lib as lib
 
 
-class _ReadPandasOption:
+class _ReadPandasOption(object):
 
     def read_pandas(self, **options):
         """

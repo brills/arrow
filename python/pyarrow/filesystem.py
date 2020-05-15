@@ -15,19 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import absolute_import
 
 import os
 import inspect
 import posixpath
-import urllib.parse
 
 from os.path import join as pjoin
+from six.moves.urllib.parse import urlparse
 
 import pyarrow as pa
 from pyarrow.util import implements, _stringify_path, _is_path_like
 
 
-class FileSystem:
+class FileSystem(object):
     """
     Abstract filesystem interface
     """
@@ -368,7 +369,8 @@ class S3FSWrapper(DaskFileSystem):
         yield path, directories, files
 
         for directory in directories:
-            yield from self.walk(directory, refresh=refresh)
+            for tup in self.walk(directory, refresh=refresh):
+                yield tup
 
 
 def _sanitize_s3(path):
@@ -392,7 +394,7 @@ def _ensure_filesystem(fs):
             elif mro.__name__ == 'LocalFileSystem':
                 return LocalFileSystem.get_instance()
 
-        raise OSError('Unrecognized filesystem: {}'.format(fs_type))
+        raise IOError('Unrecognized filesystem: {0}'.format(fs_type))
     else:
         return fs
 
@@ -413,7 +415,7 @@ def resolve_filesystem_and_path(where, filesystem=None):
     if filesystem is not None:
         return _ensure_filesystem(filesystem), path
 
-    parsed_uri = urllib.parse.urlparse(path)
+    parsed_uri = urlparse(path)
     if parsed_uri.scheme == 'hdfs' or parsed_uri.scheme == 'viewfs':
         # Input is hdfs URI such as hdfs://host:port/myfile.parquet
         netloc_split = parsed_uri.netloc.split(':')

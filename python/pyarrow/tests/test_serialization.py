@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import division
 
 import pytest
 
@@ -81,6 +82,12 @@ def assert_equal(obj1, obj2):
                                                                   .format(
                                                                       obj1,
                                                                       obj2))
+        try:
+            # Workaround to make comparison of OrderedDicts work on Python 2.7
+            if obj1 == obj2:
+                return
+        except Exception:
+            pass
         if obj1.__dict__ == {}:
             print("WARNING: Empty dict in ", obj1)
         for key in obj1.__dict__.keys():
@@ -133,13 +140,13 @@ def assert_equal(obj1, obj2):
 PRIMITIVE_OBJECTS = [
     0, 0.0, 0.9, 1 << 62, 1 << 999,
     [1 << 100, [1 << 100]], "a", string.printable, "\u262F",
-    "hello world", "hello world", "\xff\xfe\x9c\x001\x000\x00",
+    "hello world", u"hello world", u"\xff\xfe\x9c\x001\x000\x00",
     None, True, False, [], (), {}, {(1, 2): 1}, {(): 2},
-    [1, "hello", 3.0], "\u262F", 42.0, (1.0, "hi"),
+    [1, "hello", 3.0], u"\u262F", 42.0, (1.0, "hi"),
     [1, 2, 3, None], [(None,), 3, 1.0], ["h", "e", "l", "l", "o", None],
     (None, None), ("hello", None), (True, False),
     {True: "hello", False: "world"}, {"hello": "world", 1: 42, 2.5: 45},
-    {"hello": {2, 3}, "world": {42.0}, "this": None},
+    {"hello": set([2, 3]), "world": set([42.0]), "this": None},
     np.int8(3), np.int32(4), np.int64(5),
     np.uint8(3), np.uint32(4), np.uint64(5),
     np.float16(1.9), np.float32(1.9),
@@ -155,7 +162,12 @@ tensor_types = ('i1', 'i2', 'i4', 'i8', 'u1', 'u2', 'u4', 'u8',
                 'f2', 'f4', 'f8')
 
 
-PRIMITIVE_OBJECTS += [0, np.array([["hi", "hi"], [1.3, 1]])]
+if sys.version_info >= (3, 0):
+    PRIMITIVE_OBJECTS += [0, np.array([["hi", u"hi"], [1.3, 1]])]
+else:
+    PRIMITIVE_OBJECTS += [long(42), long(1 << 62), long(0),  # noqa
+                          np.array([["hi", u"hi"],
+                          [1.3, long(1)]])]  # noqa
 
 
 COMPLEX_OBJECTS = [
@@ -168,7 +180,7 @@ COMPLEX_OBJECTS = [
 ]
 
 
-class Foo:
+class Foo(object):
     def __init__(self, value=0):
         self.value = value
 
@@ -179,13 +191,13 @@ class Foo:
         return other.value == self.value
 
 
-class Bar:
+class Bar(object):
     def __init__(self):
         for i, val in enumerate(COMPLEX_OBJECTS):
             setattr(self, "field{}".format(i), val)
 
 
-class Baz:
+class Baz(object):
     def __init__(self):
         self.foo = Foo()
         self.bar = Bar()
@@ -194,7 +206,7 @@ class Baz:
         pass
 
 
-class Qux:
+class Qux(object):
     def __init__(self):
         self.objs = [Foo(1), Foo(42)]
 
@@ -288,7 +300,7 @@ def large_memory_map(tmpdir_factory, size=100*1024*1024):
 def test_clone():
     context = pa.SerializationContext()
 
-    class Foo:
+    class Foo(object):
         pass
 
     def custom_serializer(obj):
@@ -485,7 +497,7 @@ def test_numpy_base_object(tmpdir):
 # see https://issues.apache.org/jira/browse/ARROW-1695
 def test_serialization_callback_numpy():
 
-    class DummyClass:
+    class DummyClass(object):
         pass
 
     def serialize_dummy_class(obj):
@@ -665,7 +677,7 @@ def test_scipy_sparse_csr_matrix_serialization():
 @pytest.mark.filterwarnings(
     "ignore:the matrix subclass:PendingDeprecationWarning")
 def test_numpy_matrix_serialization(tmpdir):
-    class CustomType:
+    class CustomType(object):
         def __init__(self, val):
             self.val = val
 
@@ -693,17 +705,17 @@ def test_pyarrow_objects_serialization(large_buffer):
     # NOTE: We have to put these objects inside,
     # or it will affect 'test_total_bytes_allocated'.
     pyarrow_objects = [
-        pa.array([1, 2, 3, 4]), pa.array(['1', 'never U+1F631', '',
-                                         "233 * U+1F600"]),
+        pa.array([1, 2, 3, 4]), pa.array(['1', u'never U+1F631', '',
+                                         u"233 * U+1F600"]),
         pa.array([1, None, 2, 3]),
         pa.Tensor.from_numpy(np.random.rand(2, 3, 4)),
         pa.RecordBatch.from_arrays(
             [pa.array([1, None, 2, 3]),
-             pa.array(['1', 'never U+1F631', '', "233 * u1F600"])],
+             pa.array(['1', u'never U+1F631', '', u"233 * u1F600"])],
             ['a', 'b']),
         pa.Table.from_arrays([pa.array([1, None, 2, 3]),
-                              pa.array(['1', 'never U+1F631', '',
-                                       "233 * u1F600"])],
+                              pa.array(['1', u'never U+1F631', '',
+                                       u"233 * u1F600"])],
                              ['a', 'b'])
     ]
     for obj in pyarrow_objects:
@@ -712,7 +724,7 @@ def test_pyarrow_objects_serialization(large_buffer):
 
 def test_buffer_serialization():
 
-    class BufferClass:
+    class BufferClass(object):
         pass
 
     def serialize_buffer_class(obj):
@@ -762,7 +774,7 @@ def test_arrow_limits(self):
 
 def test_serialization_callback_error():
 
-    class TempClass:
+    class TempClass(object):
         pass
 
     # Pass a SerializationContext into serialize, but TempClass
@@ -783,7 +795,7 @@ def test_serialization_callback_error():
         serialized_object.deserialize(deserialization_context)
     assert err.value.type_id == "TempClass"
 
-    class TempClass2:
+    class TempClass2(object):
         pass
 
     # Make sure that we receive an error when we use an inappropriate value for
@@ -813,7 +825,7 @@ def test_fallback_to_subclasses():
     assert type(reconstructed_object) == Foo
 
 
-class Serializable:
+class Serializable(object):
     pass
 
 
@@ -895,7 +907,7 @@ def test_deserialize_components_in_different_process():
 
         import pyarrow as pa
 
-        data = {!r}
+        data = {0!r}
         components = pickle.loads(data)
         arr = pa.deserialize_components(components)
 
@@ -962,7 +974,7 @@ def test_deserialize_buffer_in_different_process():
 
 def test_set_pickle():
     # Use a custom type to trigger pickling.
-    class Foo:
+    class Foo(object):
         pass
 
     context = pa.SerializationContext()
@@ -1041,7 +1053,7 @@ def test_serialization_determinism():
 
 
 def test_serialize_recursive_objects():
-    class ClassA:
+    class ClassA(object):
         pass
 
     # Make a list that contains itself.

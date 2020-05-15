@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -39,20 +41,21 @@ from pyarrow.csv import read_csv, ReadOptions, ParseOptions, ConvertOptions
 def generate_col_names():
     # 'a', 'b'... 'z', then 'aa', 'ab'...
     letters = string.ascii_lowercase
-    yield from letters
-    for first in letters:
-        for second in letters:
+    for letter in letters:
+        yield letter
+    for first in letter:
+        for second in letter:
             yield first + second
 
 
-def make_random_csv(num_cols=2, num_rows=10, linesep='\r\n'):
+def make_random_csv(num_cols=2, num_rows=10, linesep=u'\r\n'):
     arr = np.random.RandomState(42).randint(0, 1000, size=(num_cols, num_rows))
     col_names = list(itertools.islice(generate_col_names(), num_cols))
     csv = io.StringIO()
-    csv.write(",".join(col_names))
+    csv.write(u",".join(col_names))
     csv.write(linesep)
     for row in arr.T:
-        csv.write(",".join(map(str, row)))
+        csv.write(u",".join(map(str, row)))
         csv.write(linesep)
     csv = csv.getvalue().encode()
     columns = [pa.array(a, type=pa.int64()) for a in arr]
@@ -62,8 +65,8 @@ def make_random_csv(num_cols=2, num_rows=10, linesep='\r\n'):
 
 def make_empty_csv(column_names):
     csv = io.StringIO()
-    csv.write(",".join(column_names))
-    csv.write("\n")
+    csv.write(u",".join(column_names))
+    csv.write(u"\n")
     return csv.getvalue().encode()
 
 
@@ -433,7 +436,7 @@ class BaseTestCSVRead:
         assert table.to_pydict() == {
             'a': [1.0, 4.0],
             'b': [2, -5],
-            'c': ["3", "foo"],
+            'c': [u"3", u"foo"],
             'd': [False, True],
             }
 
@@ -454,7 +457,7 @@ class BaseTestCSVRead:
         assert table.to_pydict() == {
             'a': [1.0, None, 4.5],
             'b': [2, -5, None],
-            'c': ["", "foo", "nan"],
+            'c': [u"", u"foo", u"nan"],
             'd': [None, None, None],
             'e': [b"3", b"nan", b"\xff"],
             'f': [None, True, False],
@@ -474,12 +477,12 @@ class BaseTestCSVRead:
 
     def test_auto_dict_encode(self):
         opts = ConvertOptions(auto_dict_encode=True)
-        rows = "a,b\nab,1\ncdé,2\ncdé,3\nab,4".encode()
+        rows = u"a,b\nab,1\ncdé,2\ncdé,3\nab,4".encode('utf8')
         table = self.read_bytes(rows, convert_options=opts)
         schema = pa.schema([('a', pa.dictionary(pa.int32(), pa.string())),
                             ('b', pa.int64())])
         expected = {
-            'a': ["ab", "cdé", "cdé", "ab"],
+            'a': [u"ab", u"cdé", u"cdé", u"ab"],
             'b': [1, 2, 3, 4],
             }
         assert table.schema == schema
@@ -505,7 +508,7 @@ class BaseTestCSVRead:
         assert table.schema == schema
         dict_values = table['a'].chunk(0).dictionary
         assert len(dict_values) == 2
-        assert dict_values[0] == "ab"
+        assert dict_values[0] == u"ab"
         assert dict_values[1].as_buffer() == b"cd\xff"
 
         # With invalid UTF8, checked
@@ -532,8 +535,8 @@ class BaseTestCSVRead:
         assert table.schema == schema
         assert table.to_pydict() == {
             'a': [None, None],
-            'b': ["Xxx", "#N/A"],
-            'c': ["1", ""],
+            'b': [u"Xxx", u"#N/A"],
+            'c': [u"1", u""],
             'd': [2, None],
             }
 
@@ -542,8 +545,8 @@ class BaseTestCSVRead:
         table = self.read_bytes(rows, convert_options=opts)
         assert table.to_pydict() == {
             'a': [None, None],
-            'b': [None, "#N/A"],
-            'c': ["1", ""],
+            'b': [None, u"#N/A"],
+            'c': [u"1", u""],
             'd': [2, None],
             }
 
@@ -554,8 +557,8 @@ class BaseTestCSVRead:
                             ('b', pa.string())])
         assert table.schema == schema
         assert table.to_pydict() == {
-            'a': ["#N/A"],
-            'b': [""],
+            'a': [u"#N/A"],
+            'b': [u""],
             }
 
     def test_custom_bools(self):
@@ -689,14 +692,14 @@ class BaseTestCSVRead:
         rows = b"a;b,c\nde,fg;eh\n"
         table = self.read_bytes(rows)
         assert table.to_pydict() == {
-            'a;b': ['de'],
-            'c': ['fg;eh'],
+            'a;b': [u'de'],
+            'c': [u'fg;eh'],
             }
         opts = ParseOptions(delimiter=';')
         table = self.read_bytes(rows, parse_options=opts)
         assert table.to_pydict() == {
-            'a': ['de,fg'],
-            'b,c': ['eh'],
+            'a': [u'de,fg'],
+            'b,c': [u'eh'],
             }
 
     def test_small_random_csv(self):
@@ -728,7 +731,7 @@ class BaseTestCSVRead:
         except AttributeError:
             clock = time.time
         num_columns = 10000
-        col_names = ["K{}".format(i) for i in range(num_columns)]
+        col_names = ["K{0}".format(i) for i in range(num_columns)]
         csv = make_empty_csv(col_names)
         t1 = clock()
         convert_options = ConvertOptions(
